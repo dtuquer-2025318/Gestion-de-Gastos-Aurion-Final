@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum TipoComprobante {
+  SALARIO
+  FACTURA
+}
+
+enum CategoriaIngreso {
+  SERVICIOS
+  PLANILLA
+  PRODUCTOS
+  CONSULTORIA
+  OTROS
+}
+
+enum EstadoIngreso {
+  PAGADO
+  PENDIENTE
+  ANULADO
+}
+
+model User {
+  id          String    @id @default(uuid())
+  username    String    @unique
+  firstName   String
+  lastName    String
+  email       String    @unique
+  password    String?   // Hacemos la contraseña opcional para usuarios 100% OAuth
+  gender      Gender    @default(PREFER_NOT_TO_SAY)
+  birthDate   DateTime?
+  phone       String?
+  role        Role      @default(USER)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  lastLoginAt    DateTime?
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+
+  accounts Account[]
+  ingresos Ingreso[]
+}
+
+model Account {
+  id                String   @id @default(uuid())
+  userId            String
+  provider          String   // 'google', 'github', etc.
+  providerAccountId String   // Google Subject ID (sub)
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Ingreso {
+  id              String           @id @default(uuid())
+  clienteOrigen   String
+  categoria       CategoriaIngreso
+  montoBruto      Decimal          @db.Decimal(12, 2)
+  fecha           DateTime
+  tipoComprobante TipoComprobante
+  estado          EstadoIngreso    @default(PAGADO)
+
+  igss        Decimal @db.Decimal(12, 2) @default(0)
+  ivaIsr      Decimal @db.Decimal(12, 2) @default(0)
+  ingresoNeto Decimal @db.Decimal(12, 2) @default(0)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

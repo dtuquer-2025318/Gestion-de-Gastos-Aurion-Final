@@ -1,0 +1,64 @@
+<!-- Tarjetas de estadísticas -->
+<section class="stats-section">
+  <div class="stat-card" *ngFor="let stat of stats">
+    <div class="stat-title">{{ stat.title }}</div>
+    <div class="stat-icon-wrapper">
+      <img [src]="stat.icon" [alt]="stat.title" class="stat-icon-img" />
+    </div>
+    <div class="stat-value">{{ stat.value }}</div>
+  </div>
+</section>
+
+<!-- Gráfico de barras -->
+<section class="chart-section">
+  <div class="chart-card">
+    <div class="chart-header">
+      <h3 class="chart-title">Gastos durante el año</h3>
+      <div class="chart-legend">
+        <span class="legend-item">
+          <span class="legend-dot" style="background: #3b82f6;"></span>
+          <span>Dinero</span>
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot" style="background: #a78bfa;"></span>
+          <span>Dinero</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="bar-chart-wrapper">
+      <!-- Eje Y -->
+      <div class="y-axis">
+        <span>4.000</span>
+        <span>3.000</span>
+        <span>2.000</span>
+        <span>1.000</span>
+        <span>0</span>
+      </div>
+
+      <!-- Área del gráfico -->
+      <div class="chart-plot">
+        <!-- Líneas de cuadrícula -->
+        <div class="grid-lines">
+          <div class="grid-line"></div>
+          <div class="grid-line"></div>
+          <div class="grid-line"></div>
+          <div class="grid-line"></div>
+          <div class="grid-line"></div>
+        </div>
+
+        <!-- Barras -->
+        <div class="bars-container">
+          <div class="bar-group" *ngFor="let group of barData">
+            <div class="bar-pair">
+              <div class="bar bar-blue" [style.height.%]="(group.blue / 4000) * 100"></div>
+              <div class="bar bar-purple" [style.height.%]="(group.purple / 4000) * 100"></div>
+            </div>
+            <span class="bar-label">{{ group.label }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

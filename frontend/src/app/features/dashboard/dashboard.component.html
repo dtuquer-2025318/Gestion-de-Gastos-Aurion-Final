@@ -1,0 +1,92 @@
+<div class="dashboard-layout" [class.sidebar-open]="sidebarOpen">
+
+  <!-- Sidebar -->
+  <aside class="dashboard-sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="hexGrad" x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#4f8ef7"/>
+              <stop offset="100%" stop-color="#5b4cdb"/>
+            </linearGradient>
+          </defs>
+          <path d="M12 2L20.66 7V17L12 22L3.34 17V7L12 2Z" fill="url(#hexGrad)" stroke="white" stroke-width="1.5"/>
+          <text x="12" y="16.5" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="sans-serif">A</text>
+        </svg>
+      </div>
+      <span class="brand-text">AURION</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a
+        class="nav-item"
+        *ngFor="let item of navItems"
+        [routerLink]="item.path || null"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: item.exact }"
+        [style.opacity]="item.path ? '1' : '0.5'"
+        [style.cursor]="item.path ? 'pointer' : 'default'"
+      >
+        <i class="bi {{ item.icon }}"></i>
+    <span>{{ item.label }}</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Overlay móvil -->
+  <div class="sidebar-overlay" *ngIf="sidebarOpen" (click)="toggleSidebar()"></div>
+
+  <!-- Contenido principal -->
+  <main class="dashboard-content">
+
+    <!-- Header morado -->
+    <header class="dashboard-topbar">
+      <button class="sidebar-toggle" (click)="toggleSidebar()">
+        <i class="bi bi-list"></i>
+      </button>
+
+      <div class="topbar-info">
+        <h1 class="page-title">GESTOR DE GASTOS AURION</h1>
+        <p class="page-date">{{ currentDate }} — {{ currentTime }}</p>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="user-chip" (click)="openLogoutModal()">
+          <div class="user-avatar-sm">
+            <i class="bi bi-person-fill"></i>
+          </div>
+          <div class="user-info-sm">
+            <span class="user-name-sm">{{ currentUser()?.firstName || 'Usuario' }}</span>
+            <span class="user-role-sm">{{ userRoleLabel }}</span>
+          </div>
+          <div class="logout-btn">
+            <i class="bi bi-box-arrow-right"></i>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Área scrollable con router-outlet -->
+    <div class="dashboard-scroll">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+</div>
+
+<!-- Modal de logout -->
+<div class="modal-backdrop" *ngIf="showLogoutModal()" (click)="onBackdropClick($event)">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title">Cerrar sesión</h3>
+      <button class="modal-close" (click)="closeLogoutModal()" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-message">¿Estás seguro de que deseas cerrar sesión? Tu sesión actual se cerrará inmediatamente.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" (click)="closeLogoutModal()">Cancelar</button>
+      <button class="btn-modal-confirm" (click)="confirmLogout()">Sí, cerrar sesión</button>
+    </div>
+  </div>
+</div>
