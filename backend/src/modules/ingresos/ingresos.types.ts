@@ -1,35 +1,28 @@
-import { Decimal } from '@prisma/client/runtime/library';
-import { TipoComprobante, CategoriaIngreso, EstadoIngreso } from '@prisma/client';
+import { TipoIngreso, CategoriaIngreso, TipoComprobante, EstadoIngreso } from '@prisma/client';
 
-export interface IngresoCreateInput {
-  clienteOrigen: string;
-  categoria: CategoriaIngreso;
-  montoBruto: number;
-  fecha: string;
-  tipoComprobante: TipoComprobante;
-  estado?: EstadoIngreso;
-}
-
-export interface IngresoUpdateInput {
-  clienteOrigen?: string;
-  categoria?: CategoriaIngreso;
-  montoBruto?: number;
-  fecha?: string;
-  tipoComprobante?: TipoComprobante;
-  estado?: EstadoIngreso;
+export interface DesgloseFiscal {
+  baseImponible: number;
+  iva: number;
+  isr: number;
+  igss: number;
+  ivaPendientePago: number;
+  neto: number;
+  cuentaComoIngreso: boolean;
 }
 
 export interface IngresoResponse {
   id: string;
   clienteOrigen: string;
   categoria: CategoriaIngreso;
-  montoBruto: Decimal;
+  tipoIngreso: TipoIngreso;
+  montoBruto: number;
   fecha: Date;
   tipoComprobante: TipoComprobante;
   estado: EstadoIngreso;
-  igss: Decimal;
-  ivaIsr: Decimal;
-  ingresoNeto: Decimal;
+  igss: number;
+  ivaIsr: number;
+  ivaPendientePago: number;
+  ingresoNeto: number;
   userId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -37,7 +30,8 @@ export interface IngresoResponse {
 
 export interface IngresoKPIs {
   totalIngresosBrutos: number;
-  previsionImpuestos: number;
+  retencionIsr: number;
   retencionesIgss: number;
+  ivaPendientePago: number;
   ingresoNetoReal: number;
 }
