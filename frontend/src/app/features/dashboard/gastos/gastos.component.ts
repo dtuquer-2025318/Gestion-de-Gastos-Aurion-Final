@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BaseChartDirective } from 'ng2-charts';
 import { GastosService, Gasto } from '../../../core/services/gastos.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-gastos',
@@ -18,13 +19,14 @@ import { GastosService, Gasto } from '../../../core/services/gastos.service';
 export class GastosComponent implements OnInit {
   gastos: Gasto[] = [];
   gastoForm!: FormGroup;
-  
-  // Modales y estados
+
+  // Estado de permisos y controles UI
+  esAdmin = false;
   mostrarModal = false;
   mostrarModalEliminar = false;
   cargando = false;
   mensajeError: string | null = null;
-  
+
   categoriaActiva = 'ALIMENTOS';
   gastoEnEdicionId: string | null = null;
   gastoParaEliminar: Gasto | null = null;
@@ -32,14 +34,14 @@ export class GastosComponent implements OnInit {
   categorias = ['ALIMENTOS', 'HOGAR', 'ROPA', 'VEHICULO', 'OTROS'];
 
   placeholdersDetalle: Record<string, string> = {
-    ALIMENTOS: '',
-    HOGAR: '',
-    ROPA: '',
-    VEHICULO: '',
-    OTROS: ''
+    ALIMENTOS: 'Ej. Supermercado, Almuerzo',
+    HOGAR: 'Ej. Servicio de luz, Mantenimiento',
+    ROPA: 'Ej. Compra de prendas',
+    VEHICULO: 'Ej. Combustible, Repuestos',
+    OTROS: 'Ej. Gastos varios'
   };
 
-  // Configuración de Gráfica
+  // Configuración Chart.js / ng2-charts
   pieChartLabels: string[] = this.categorias;
   pieChartData: number[] = [0, 0, 0, 0, 0];
   pieChartType = 'doughnut' as const;
@@ -50,12 +52,46 @@ export class GastosComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private gastosService: GastosService
+    private gastosService: GastosService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.verificarRol();
     this.inicializarFormulario();
     this.cargarGastos();
+  }
+
+  verificarRol(): void {
+    try {
+      // 1. Intenta obtener usuario de métodos / propiedades comunes de AuthService
+      const auth = this.authService as any;
+      let usuario = null;
+
+      if (typeof auth.getUser === 'function') {
+        usuario = auth.getUser();
+      } else if (typeof auth.currentUser === 'function') {
+        usuario = auth.currentUser();
+      } else if (auth.user) {
+        usuario = auth.user;
+      }
+
+      // 2. Si AuthService no expone el usuario en memoria, se lee del storage
+      if (!usuario) {
+        const storedUser = localStorage.getItem('user') || localStorage.getItem('usuario');
+        if (storedUser) {
+          usuario = JSON.parse(storedUser);
+        }
+      }
+
+      // Validar si posee el rol ADMIN
+      const role = usuario?.role || usuario?.rol;
+      this.esAdmin = String(role).toUpperCase() === 'ADMIN';
+
+    } catch (error) {
+      console.error('Error al verificar el rol del usuario:', error);
+      this.esAdmin = false;
+    }
   }
 
   inicializarFormulario(): void {
@@ -102,6 +138,8 @@ export class GastosComponent implements OnInit {
   }
 
   abrirModalCrear(categoria: string = 'ALIMENTOS'): void {
+    if (!this.esAdmin) return;
+
     this.categoriaActiva = categoria;
     this.gastoEnEdicionId = null;
     this.mensajeError = null;
@@ -117,6 +155,8 @@ export class GastosComponent implements OnInit {
   }
 
   abrirModalEditar(gasto: Gasto): void {
+    if (!this.esAdmin) return;
+
     this.gastoEnEdicionId = String(gasto.id);
     this.categoriaActiva = gasto.categoria || 'ALIMENTOS';
     this.mensajeError = null;
@@ -140,7 +180,7 @@ export class GastosComponent implements OnInit {
   }
 
   guardarGasto(): void {
-    if (this.gastoForm.invalid) return;
+    if (!this.esAdmin || this.gastoForm.invalid) return;
 
     this.cargando = true;
     this.mensajeError = null;
@@ -189,6 +229,7 @@ export class GastosComponent implements OnInit {
   }
 
   confirmarEliminar(gasto: Gasto): void {
+    if (!this.esAdmin) return;
     this.gastoParaEliminar = gasto;
     this.mostrarModalEliminar = true;
   }
@@ -199,32 +240,24 @@ export class GastosComponent implements OnInit {
   }
 
   ejecutarEliminacion(): void {
-    if (!this.gastoParaEliminar) return;
+    if (!this.esAdmin || !this.gastoParaEliminar) return;
 
     const gastoEliminado = this.gastoParaEliminar;
     const id = String(gastoEliminado.id);
 
-    // 1. Eliminación Optimista: Ocultar de la interfaz inmediatamente
     this.gastos = this.gastos.filter(g => String(g.id) !== id);
     this.actualizarGrafica();
     this.cerrarModalEliminar();
 
-    // 2. Ejecutar la petición en segundo plano sin congelar la UI
     this.gastosService.eliminar(id).subscribe({
-      next: () => {
-        // La eliminación fue exitosa en el servidor
-      },
+      next: () => {},
       error: (err) => {
-        // 3. Rollback: Si falla el backend, restaurar el registro en la lista
-        console.error('Error al eliminar gasto en servidor:', err);
+        console.error('Error al eliminar gasto:', err);
         this.gastos = [gastoEliminado, ...this.gastos];
         this.actualizarGrafica();
-
-        if (err.status === 404) {
-          this.mensajeError = 'El registro no existe o ya fue eliminado.';
-        } else {
-          this.mensajeError = 'No se pudo eliminar el registro en el servidor.';
-        }
+        this.mensajeError = err.status === 404 
+          ? 'El registro no existe o ya fue eliminado.' 
+          : 'No se pudo eliminar el registro en el servidor.';
       }
     });
   }

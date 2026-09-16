@@ -26,7 +26,8 @@
       <div class="category-card" *ngFor="let cat of categorias">
         <div class="card-header">
           <span class="category-title">{{ cat }}</span>
-          <button class="btn-add-mini" (click)="abrirModalCrear(cat)" title="Agregar gasto en {{cat}}">+</button>
+          <!-- Botón de agregar visible únicamente para el Admin -->
+          <button *ngIf="esAdmin" class="btn-add-mini" (click)="abrirModalCrear(cat)" title="Agregar gasto en {{cat}}">+</button>
         </div>
         <div class="card-body">
           <span class="monto-label">Total gastado</span>
@@ -64,7 +65,8 @@
             <th>Detalle del Gasto</th>
             <th>Categoría</th>
             <th>Monto</th>
-            <th class="text-center">Acciones</th>
+            <!-- Columna de acciones visible únicamente si es Admin -->
+            <th *ngIf="esAdmin" class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -75,7 +77,8 @@
               <span class="badge badge-categoria">{{ gasto.categoria }}</span>
             </td>
             <td class="monto-column">Q {{ gasto.montoTotal | number:'1.2-2' }}</td>
-            <td class="actions-cell">
+            <!-- Celda de acciones protegida -->
+            <td *ngIf="esAdmin" class="actions-cell">
               <button class="btn-action btn-edit" (click)="abrirModalEditar(gasto)" title="Editar">
                 ✏️
               </button>
@@ -85,12 +88,12 @@
             </td>
           </tr>
           <tr *ngIf="gastos.length === 0 && !cargando">
-            <td colspan="5" class="empty-message">
+            <td [attr.colspan]="esAdmin ? 5 : 4" class="empty-message">
               No hay gastos registrados actualmente.
             </td>
           </tr>
           <tr *ngIf="cargando">
-            <td colspan="5" class="empty-message">
+            <td [attr.colspan]="esAdmin ? 5 : 4" class="empty-message">
               Cargando registros...
             </td>
           </tr>
@@ -100,8 +103,8 @@
   </div>
 </div>
 
-<!-- Modal para Crear / Editar Gasto -->
-<div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()">
+<!-- Modal para Crear / Editar Gasto (Protegido por esAdmin) -->
+<div class="modal-backdrop" *ngIf="mostrarModal && esAdmin" (click)="cerrarModal()">
   <div class="modal-card" (click)="$event.stopPropagation()">
     <button class="btn-close" (click)="cerrarModal()">&times;</button>
     <div class="modal-header">
@@ -142,8 +145,8 @@
   </div>
 </div>
 
-<!-- Modal de Confirmación para Eliminar Registro -->
-<div class="modal-backdrop" *ngIf="mostrarModalEliminar" (click)="cerrarModalEliminar()">
+<!-- Modal de Confirmación para Eliminar Registro (Protegido por esAdmin) -->
+<div class="modal-backdrop" *ngIf="mostrarModalEliminar && esAdmin" (click)="cerrarModalEliminar()">
   <div class="modal-card modal-danger" (click)="$event.stopPropagation()">
     <button class="btn-close" (click)="cerrarModalEliminar()">&times;</button>
     
