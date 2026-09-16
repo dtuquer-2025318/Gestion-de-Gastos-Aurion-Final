@@ -1,0 +1,486 @@
+/* ============================================================
+   DASHBOARD AURION — v3.1 (Layout Shell)
+   ============================================================ */
+
+/* ---------- HOST / BASE ---------- */
+:host {
+  display: block;
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --aurion-purple: #5b4cdb;
+  --aurion-purple-dark: #4a3ec7;
+  --aurion-sidebar-bg: #0d0d1a;
+  --aurion-blue-bar: #3b82f6;
+  --aurion-purple-bar: #a78bfa;
+  --aurion-white: #ffffff;
+  --aurion-text-dark: #1f2937;
+  --aurion-text-muted: #6b7280;
+  --aurion-logout-red: #ef4444;
+  --aurion-content-bg: #f8f9fb;
+  --aurion-border: #e5e7eb;
+}
+
+/* ---------- LAYOUT ---------- */
+:host .dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--aurion-content-bg);
+}
+
+/* ---------- SIDEBAR ---------- */
+:host .dashboard-sidebar {
+  width: 220px;
+  background: var(--aurion-sidebar-bg);
+  color: var(--aurion-white);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1050;
+  transition: transform 0.3s ease;
+}
+
+:host .sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px 20px;
+}
+
+:host .brand-icon {
+  width: 56px;
+  height: 56px;
+}
+
+:host .brand-icon svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 4px 12px rgba(91, 76, 219, 0.4));
+}
+
+:host .brand-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--aurion-white);
+  text-transform: uppercase;
+}
+
+:host .sidebar-nav {
+  flex: 1;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Alta especificidad para vencer a Bootstrap .nav-item */
+:host aside.dashboard-sidebar nav.sidebar-nav a.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--aurion-purple);
+  color: var(--aurion-white);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  position: relative;
+  border: none;
+}
+
+:host aside.dashboard-sidebar nav.sidebar-nav a.nav-item:hover {
+  background: var(--aurion-purple-dark);
+  transform: translateX(2px);
+}
+
+:host aside.dashboard-sidebar nav.sidebar-nav a.nav-item.active {
+  background: var(--aurion-purple-dark);
+}
+
+:host aside.dashboard-sidebar nav.sidebar-nav a.nav-item.active::after {
+  content: '';
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 8px solid var(--aurion-purple-dark);
+}
+
+:host aside.dashboard-sidebar nav.sidebar-nav a.nav-item i {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+/* ---------- OVERLAY ---------- */
+:host .sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 13, 26, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 1040;
+}
+
+/* ---------- CONTENT ---------- */
+:host .dashboard-content {
+  flex: 1;
+  margin-left: 220px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--aurion-content-bg);
+}
+
+/* ---------- TOPBAR ---------- */
+:host .dashboard-topbar {
+  background: var(--aurion-purple);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(91, 76, 219, 0.25);
+}
+
+:host .sidebar-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--aurion-white);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+:host .sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+:host .topbar-info {
+  flex: 1;
+}
+
+:host .page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--aurion-white);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+:host .page-date {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 2px 0 0;
+}
+
+:host .topbar-actions {
+  display: flex;
+  align-items: center;
+}
+
+:host .user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 12px;
+  background: var(--aurion-white);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+:host .user-chip:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+:host .user-avatar-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: var(--aurion-text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+:host .user-info-sm {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+:host .user-name-sm {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--aurion-text-dark);
+}
+
+:host .user-role-sm {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--aurion-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+:host .logout-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--aurion-logout-red);
+  color: var(--aurion-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  margin-left: 4px;
+  transition: transform 0.2s, background 0.2s;
+}
+
+:host .logout-btn:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+/* ---------- SCROLL AREA ---------- */
+:host .dashboard-scroll {
+  flex: 1;
+  padding: 28px 32px;
+  overflow-y: auto;
+}
+
+/* ---------- ANIMATIONS ---------- */
+@keyframes aurionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- MODAL DE LOGOUT ---------- */
+:host .modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(13, 13, 26, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 16px;
+  animation: aurionFadeIn 0.25s ease-out both;
+}
+
+:host .modal-content {
+  background: var(--aurion-white);
+  border-radius: 14px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+  animation: modalScaleIn 0.3s ease-out both;
+}
+
+:host .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 12px;
+}
+
+:host .modal-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--aurion-text-dark);
+}
+
+:host .modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--aurion-text-muted);
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+:host .modal-close:hover {
+  color: var(--aurion-text-dark);
+  background-color: var(--aurion-content-bg);
+}
+
+:host .modal-body {
+  padding: 8px 24px 4px;
+}
+
+:host .modal-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--aurion-text-muted);
+  line-height: 1.6;
+}
+
+:host .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 24px;
+  border-top: 1px solid var(--aurion-border);
+  margin-top: 8px;
+}
+
+:host .btn-modal-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: transparent;
+  color: var(--aurion-purple);
+  border: 1.5px solid var(--aurion-purple);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+:host .btn-modal-cancel:hover {
+  background-color: rgba(91, 76, 219, 0.08);
+  color: var(--aurion-purple-dark);
+  border-color: var(--aurion-purple-dark);
+}
+
+:host .btn-modal-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: var(--aurion-logout-red);
+  color: var(--aurion-white);
+  border: none;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+:host .btn-modal-confirm:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+}
+
+:host .btn-modal-confirm:active {
+  transform: translateY(0);
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 992px) {
+  :host .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  :host .dashboard-sidebar {
+    transform: translateX(-100%);
+  }
+
+  :host .dashboard-layout.sidebar-open .dashboard-sidebar {
+    transform: translateX(0);
+  }
+
+  :host .dashboard-content {
+    margin-left: 0;
+  }
+
+  :host .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  :host .stats-section {
+    grid-template-columns: 1fr;
+  }
+
+  :host .dashboard-scroll {
+    padding: 20px 16px;
+  }
+
+  :host .dashboard-topbar {
+    padding: 12px 16px;
+  }
+
+  :host .page-title {
+    font-size: 1.1rem;
+  }
+
+  :host .user-info-sm {
+    display: none;
+  }
+
+  :host .bar-chart-wrapper {
+    height: 260px;
+  }
+
+  :host .bar {
+    width: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  :host .bar {
+    width: 26px;
+  }
+
+  :host .bar-pair {
+    gap: 6px;
+  }
+
+  :host .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
