@@ -6,6 +6,9 @@ import ingresosRoutes from './modules/ingresos/ingresos.routes';
 import { errorMiddleware } from './middleware/error.middleware';
 import { helmetConfig, authRateLimiter } from './config/security';
 import userRoutes from './modules/users/users.routes';
+import gastosRoutes from './modules/gastos/gastos.routes';
+import ahorroRoutes from './modules/ahorro/ahorro.routes';
+
 
 const app = express();
 
@@ -26,7 +29,11 @@ app.use('/api/v1/auth', authRateLimiter, authRoutes);
 
 app.use('/api/v1/ingresos', ingresosRoutes);
 
+app.use('/api/v1/gastos', gastosRoutes);
+
 app.use('/api/v1/users', userRoutes);
+
+app.use('/api/v1/ahorros', ahorroRoutes);
 
 app.use((_req, res, _next) => {
   res.status(404).json({
