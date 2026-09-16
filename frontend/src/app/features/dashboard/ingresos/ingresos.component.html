@@ -1,0 +1,212 @@
+<div class="ingresos-container">
+  <!-- Encabezado -->
+  <div class="header-section">
+    <h2>INGRESOS</h2>
+    <p class="subtitle">Control y seguimiento fiscal de tus ingresos</p>
+  </div>
+
+  <!-- Tarjetas de KPIs Fiscales -->
+  <div class="kpis-grid">
+    <div class="kpi-card">
+      <span class="kpi-title">TOTAL INGRESOS BRUTOS (Q)</span>
+      <div class="kpi-value">{{ formatMoney(kpis().totalIngresosBrutos) }}</div>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-title">RETENCIÓN ISR (Q)</span>
+      <div class="kpi-value text-red">{{ formatMoney(kpis().retencionIsr) }}</div>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-title">RETENCIONES IGSS (Q)</span>
+      <div class="kpi-value text-red">{{ formatMoney(kpis().retencionesIgss) }}</div>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-title">IVA PENDIENTE DE PAGO (SAT) (Q)</span>
+      <div class="kpi-value text-orange">{{ formatMoney(kpis().ivaPendientePago) }}</div>
+    </div>
+
+    <div class="kpi-card highlight">
+      <span class="kpi-title">INGRESO NETO DISPONIBLE (Q)</span>
+      <div class="kpi-value text-purple">{{ formatMoney(kpis().ingresoNetoReal) }}</div>
+    </div>
+  </div>
+
+  <!-- Tabla Histórica -->
+  <div class="table-card">
+    <div class="table-header">
+      <h3>Historial de Ingresos</h3>
+      <button *ngIf="isAdmin()" class="btn-primary" (click)="openCreate()">
+        Crear nuevo ingreso <span>+</span>
+      </button>
+    </div>
+
+    <div *ngIf="error()" class="error-banner">
+      {{ error() }}
+    </div>
+
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Cliente / Origen</th>
+            <th>Tipo Fiscal</th>
+            <th>Categoría</th>
+            <th>Comprobante</th>
+            <th>Monto Bruto (Q)</th>
+            <th>Estado</th>
+            <th *ngIf="isAdmin()">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ing of ingresos()" [class.row-anulado]="ing.estado === 'ANULADO'">
+            <td>{{ ing.fecha | date:'dd/MM/yyyy' }}</td>
+            <td class="font-medium">{{ ing.clienteOrigen }}</td>
+            <td><span class="tipo-badge">{{ ing.tipoIngreso }}</span></td>
+            <td><span class="cat-badge">{{ ing.categoria }}</span></td>
+            <td>
+              <span class="comp-badge" [class.salario]="ing.tipoComprobante === 'SALARIO'">
+                {{ ing.tipoComprobante }}
+              </span>
+            </td>
+            <td class="font-bold">{{ formatMoney(ing.montoBruto) }}</td>
+            <td>
+              <span class="estado-badge" [ngClass]="estadoClass(ing.estado)">
+                {{ ing.estado }}
+              </span>
+            </td>
+            <td *ngIf="isAdmin()" class="actions-cell">
+              <button class="btn-icon" (click)="openEdit(ing)" title="Editar">✏️</button>
+              <button *ngIf="ing.estado !== 'ANULADO'" class="btn-icon delete" (click)="confirmAnular(ing.id)" title="Anular">🗑️</button>
+            </td>
+          </tr>
+          <tr *ngIf="ingresos().length === 0 && !loading()">
+            <td colspan="8" class="empty-state">No hay registros de ingresos disponibles.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Crear / Editar -->
+  <div class="modal-backdrop" *ngIf="showModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>{{ isEditing() ? 'Editar Ingreso' : 'Crear Nuevo Ingreso' }}</h3>
+        <button class="close-btn" (click)="closeModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Cliente</label>
+            <input type="text" [(ngModel)]="form().clienteOrigen"/>
+          </div>
+
+          <div class="form-group">
+            <label>Tipo de Ingreso</label>
+            <select [ngModel]="form().tipoIngreso" (ngModelChange)="onTipoIngresoChange($event)">
+              <option *ngFor="let t of tiposIngreso" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Categoría</label>
+            <select [(ngModel)]="form().categoria">
+              <option *ngFor="let cat of categorias" [value]="cat">{{ cat }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Monto Bruto (Q)</label>
+            <input type="number" [(ngModel)]="form().montoBruto" min="0" step="0.01" />
+          </div>
+
+          <div class="form-group">
+            <label>Fecha</label>
+            <input type="date" [(ngModel)]="form().fecha" />
+          </div>
+
+          <div class="form-group">
+            <label>Tipo de Comprobante</label>
+            <select [(ngModel)]="form().tipoComprobante">
+              <option *ngFor="let comp of comprobantes" [value]="comp">{{ comp }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Estado</label>
+            <select [(ngModel)]="form().estado">
+              <option *ngFor="let est of estados" [value]="est">{{ est }}</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Descripción</label>
+              <textarea [(ngModel)]="form().descripcion">
+              </textarea>
+            </div>
+          </div>
+
+        <!-- Desglose Fiscal Dinámico -->
+        <div class="summary-box">
+          <div *ngIf="form().tipoIngreso === 'REEMBOLSO'" class="notice-box">
+            ℹ️ <strong>Aviso Fiscal:</strong> Los reembolsos son recuperaciones de capital gastado. No generan IVA/ISR ni computan en KPIs de ingresos reales.
+          </div>
+
+          <div *ngIf="form().estado === 'PENDIENTE'" class="notice-box orange">
+            ⏳ <strong>Estado Pendiente:</strong> No se aplicarán deducciones ni sumará al disponible real hasta cambiar a PAGADO.
+          </div>
+
+          <div class="summary-row" *ngIf="desgloseModal().igss > 0">
+            <span class="summary-label">Retención IGSS (4.83%):</span>
+            <span class="summary-value text-red">-{{ formatMoney(desgloseModal().igss) }}</span>
+          </div>
+
+          <div class="summary-row" *ngIf="desgloseModal().isr > 0">
+            <span class="summary-label">Retención ISR:</span>
+            <span class="summary-value text-red">-{{ formatMoney(desgloseModal().isr) }}</span>
+          </div>
+
+          <div class="summary-row" *ngIf="desgloseModal().ivaPendientePago > 0">
+            <span class="summary-label">Reserva IVA por Pagar a SAT (12%):</span>
+            <span class="summary-value text-orange">{{ formatMoney(desgloseModal().ivaPendientePago) }}</span>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-row font-bold">
+            <span>Ingreso Neto Real / Disponible:</span>
+            <span class="summary-value text-purple">{{ formatMoney(desgloseModal().neto) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Cancelar</button>
+        <button class="btn-primary" (click)="save()">
+          {{ isEditing() ? 'Guardar Cambios' : 'Crear Ingreso' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Anulación -->
+  <div class="modal-backdrop" *ngIf="showAnularConfirm()">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h3>Confirmar Anulación</h3>
+        <button class="close-btn" (click)="cancelAnular()">×</button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas anular este ingreso? Esta acción afectará los cálculos fiscales de manera irreversible.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="cancelAnular()">Cancelar</button>
+        <button class="btn-danger" (click)="doAnular()">Confirmar Anulación</button>
+      </div>
+    </div>
+  </div>
+</div>

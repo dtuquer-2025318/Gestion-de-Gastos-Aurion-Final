@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum TipoComprobante {
+  SALARIO
+  FACTURA
+}
+
+enum TipoIngreso {
+  SALARIO
+  SERVICIOS_PROFESIONALES
+  VENTA
+  ALQUILER
+  INTERES
+  REEMBOLSO
+  OTRO
+}
+
+enum CategoriaIngreso {
+  SERVICIOS
+  PLANILLA
+  PRODUCTOS
+  CONSULTORIA
+  OTROS
+}
+
+enum EstadoIngreso {
+  PAGADO
+  PENDIENTE
+  ANULADO
+}
+
+// Categorías adaptadas a gastos personales
+enum CategoriaGasto {
+  ALIMENTOS
+  HOGAR
+  ROPA
+  VEHICULO
+  OTROS
+}
+
+enum EstadoGasto {
+  PAGADO
+  PENDIENTE
+  ANULADO
+}
+
+// NUEVOS ENUMS DE AHORRO
+enum EstadoMeta {
+  ACTIVA
+  COMPLETADA
+  CANCELADA
+}
+
+enum TipoMovimientoAhorro {
+  APORTE
+  RETIRO
+}
+
+model User {
+  id          String    @id @default(uuid())
+  username    String    @unique
+  firstName   String
+  lastName    String
+  email       String    @unique
+  password    String?
+  gender      Gender    @default(PREFER_NOT_TO_SAY)
+  birthDate   DateTime?
+  phone       String?
+  role        Role      @default(USER)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  lastLoginAt    DateTime?
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+
+  accounts    Account[]
+  ingresos    Ingreso[]
+  gastos      Gasto[]
+  metasAhorro MetaAhorro[] // Relación agregada para metas de ahorro
+
+  @@map("users")
+}
+
+model Account {
+  id                String   @id @default(uuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Ingreso {
+  id              String           @id @default(uuid())
+  clienteOrigen   String
+  descripcion     String?          // Field opcional para notas o detalles
+  categoria       CategoriaIngreso
+  tipoIngreso     TipoIngreso
+  montoBruto      Decimal          @db.Decimal(12, 2)
+  fecha           DateTime
+  tipoComprobante TipoComprobante
+  estado          EstadoIngreso    @default(PAGADO)
+
+  // Deducciones e Ingreso Neto
+  igss             Decimal @default(0) @db.Decimal(12, 2)
+  ivaIsr           Decimal @default(0) @db.Decimal(12, 2)
+  ivaPendientePago Decimal @default(0) @db.Decimal(12, 2)
+  ingresoNeto      Decimal @default(0) @db.Decimal(12, 2)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([fecha])
+  @@map("ingresos")
+}
+
+model Gasto {
+  id                    String         @id @default(uuid())
+  fecha                 DateTime
+  proveedorBeneficiario String
+  categoria             CategoriaGasto
+  montoTotal            Decimal        @db.Decimal(12, 2)
+  estado                EstadoGasto    @default(PAGADO)
+  comprobanteUrl        String?
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([fecha])
+  @@map("gastos")
+}
+
+// MODELO DE AHORRO
+model MetaAhorro {
+  id          String             @id @default(uuid())
+  usuarioId   String
+  usuario     User               @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nombre      String
+  montoMeta   Decimal            @db.Decimal(12, 2)
+  estado      EstadoMeta         @default(ACTIVA)
+  createdAt   DateTime           @default(now())
+  movimientos MovimientoAhorro[]
+
+  @@index([usuarioId])
+  @@map("metas_ahorro")
+}
+
+model MovimientoAhorro {
+  id          String               @id @default(uuid())
+  metaId      String
+  meta        MetaAhorro           @relation(fields: [metaId], references: [id], onDelete: Cascade)
+  tipo        TipoMovimientoAhorro
+  monto       Decimal              @db.Decimal(12, 2)
+  descripcion String?              @db.VarChar(255)
+  fecha       DateTime             @default(now())
+
+  @@index([metaId])
+  @@map("movimientos_ahorro")
+}

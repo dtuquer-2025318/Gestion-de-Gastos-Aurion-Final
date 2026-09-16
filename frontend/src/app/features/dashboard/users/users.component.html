@@ -1,0 +1,186 @@
+<div class="users-container">
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon icon-total"><i class="bi bi-person-fill"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">TOTAL USUARIOS:</span>
+        <span class="kpi-value">{{ kpis().totalUsuarios }}</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon icon-activos"><i class="bi bi-arrow-up-right-circle-fill"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">USUARIOS ACTIVOS:</span>
+        <span class="kpi-value">{{ kpis().usuariosActivos }}</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon icon-inactivos"><i class="bi bi-dash-circle-fill"></i></div>
+      <div class="kpi-info">
+        <span class="kpi-label">USUARIOS INACTIVOS:</span>
+        <span class="kpi-value">{{ kpis().usuariosInactivos }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-card">
+    <div class="table-header">
+      <h2 class="table-title">Gestor de Usuarios</h2>
+      <div class="search-box">
+        <input type="text" placeholder="Buscar Usuario..." [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+        <i class="bi bi-search"></i>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Nombre Completo</th>
+            <th>Correo Electrónico</th>
+            <th>Teléfono</th>
+            <th>Género</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th *ngIf="isAdmin()" class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of usuariosFiltrados()">
+            <td class="fw-bold">&#64;{{ item.username }}</td>
+            <td>{{ item.fullName }}</td>
+            <td>{{ item.email }}</td>
+            <td>{{ item.phone || 'N/A' }}</td>
+            <td>{{ item.gender }}</td>
+            <td><span class="role-badge">{{ item.role }}</span></td>
+            <td>
+              <span class="status-badge" [class.status-active]="item.isActive" [class.status-inactive]="!item.isActive">
+                {{ item.isActive ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+
+            <!-- Acciones VISIBLES SOLO PARA ADMIN -->
+            <td *ngIf="isAdmin()" class="text-center actions-cell">
+              <button class="btn-action" title="Editar" (click)="onEdit(item)">
+                <i class="bi bi-pencil-fill"></i>
+              </button>
+              <button class="btn-action" title="Cambiar Estado" (click)="onToggleEstado(item)">
+                <i class="bi bi-arrow-repeat"></i>
+              </button>
+              <button class="btn-action text-danger" title="Deshabilitar" (click)="onSoftDelete(item)">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Flotante de Edición de Usuario estilo Aurion -->
+<div class="modal-backdrop" *ngIf="showModal() && selectedUser()">
+  <div class="modal-card">
+    <!-- Encabezado con Degradado estilo Registro -->
+    <div class="modal-header-gradient">
+      <div class="badge-logo">A</div>
+      <h2>Editar Usuario</h2>
+      <p>Modifique los datos personales principales de la cuenta.</p>
+    </div>
+
+    <!-- Cuerpo del Formulario -->
+    <form (ngSubmit)="guardarEdicion()" class="modal-body-form">
+      
+      <!-- Fila 1: Nombre y Apellido -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-person"></i>
+            <input type="text" [(ngModel)]="selectedUser()!.firstName" name="firstName" placeholder="Nombre" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Apellido</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-person"></i>
+            <input type="text" [(ngModel)]="selectedUser()!.lastName" name="lastName" placeholder="Apellido" required />
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila 2: Usuario y Correo -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Usuario</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-at"></i>
+            <input type="text" [(ngModel)]="selectedUser()!.username" name="username" placeholder="Usuario" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Correo Electrónico</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-envelope"></i>
+            <input type="email" [(ngModel)]="selectedUser()!.email" name="email" placeholder="correo@ejemplo.com" required />
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila 3: Género, Teléfono y Nacimiento -->
+      <div class="form-row triple-row">
+        <div class="form-group">
+          <label>Género</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-gender-ambiguous"></i>
+            <select [(ngModel)]="selectedUser()!.gender" name="gender">
+              <option value="MALE">Masculino</option>
+              <option value="FEMALE">Femenino</option>
+              <option value="OTHER">Otro</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Teléfono</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-telephone"></i>
+            <input type="text" [(ngModel)]="selectedUser()!.phone" name="phone" placeholder="Teléfono" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Nacimiento</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-calendar-event"></i>
+            <input type="date" [(ngModel)]="selectedUser()!.birthDate" name="birthDate" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila 4: Rol del Usuario -->
+      <div class="form-row">
+        <div class="form-group full-width">
+          <label>Rol de Usuario</label>
+          <div class="input-icon-wrapper">
+            <i class="bi bi-shield-lock"></i>
+            <select [(ngModel)]="selectedUser()!.role" name="role">
+              <option value="USER">USUARIO</option>
+              <option value="ADMIN">ADMINISTRADOR</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="showModal.set(false)">Cancelar</button>
+        <button type="submit" class="btn-save">Guardar Cambios <i class="bi bi-arrow-right"></i></button>
+      </div>
+
+    </form>
+  </div>
+</div>
