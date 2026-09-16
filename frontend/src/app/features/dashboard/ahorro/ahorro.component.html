@@ -1,0 +1,240 @@
+<div class="gastos-container">
+  <!-- Alerta de Error Grave -->
+  <div class="alert-danger-banner" *ngIf="mensajeError">
+    <div class="alert-content">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ mensajeError }}</span>
+    </div>
+    <button class="btn-close-alert" (click)="mensajeError = null">&times;</button>
+  </div>
+
+  <!-- Encabezado de la Sección -->
+  <div class="header-actions flex-between mb-6">
+    <div>
+      <h2 class="section-title">Metas de Ahorro</h2>
+      <p class="subtitle">Gestiona tus fondos de reserva, establece objetivos y rastrea tu progreso.</p>
+    </div>
+    <button *ngIf="esAdmin" class="btn-primary" (click)="abrirModalMeta()">
+      <span>+</span> Nueva Meta
+    </button>
+  </div>
+
+  <!-- Layout Principal -->
+  <div class="dashboard-grid">
+    <!-- Grid de Tarjetas de Metas -->
+    <div class="cards-grid">
+      <div class="category-card" *ngFor="let meta of metas">
+        <div class="card-header">
+          <h3 class="category-title">{{ meta.nombre }}</h3>
+          <span class="badge" [ngClass]="meta.estado === 'COMPLETADA' ? 'badge-completed' : 'badge-active'">
+            {{ meta.estado }}
+          </span>
+        </div>
+
+        <div class="card-body">
+          <div class="monto-info">
+            <div class="monto-block">
+              <span class="monto-label">Ahorrado</span>
+              <h3 class="monto-val">Q {{ meta.progreso.ahorrado | number:'1.2-2' }}</h3>
+            </div>
+            <div class="monto-block text-right">
+              <span class="monto-label">Meta</span>
+              <span class="monto-meta">Q {{ meta.montoMeta | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <!-- Barra de Progreso -->
+          <div class="progress-section">
+            <div class="progress-labels">
+              <span>Progreso</span>
+              <span class="percentage">{{ meta.progreso.porcentaje || 0 }}%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" [style.width.%]="meta.progreso.porcentaje || 0"></div>
+            </div>
+          </div>
+
+          <!-- Botones de Acción -->
+          <div class="card-actions">
+            <button *ngIf="esAdmin" class="btn-action-mini btn-add" (click)="abrirModalMovimiento(meta, 'APORTE')">
+              + Aporte
+            </button>
+            <button *ngIf="esAdmin" class="btn-action-mini btn-sub" (click)="abrirModalMovimiento(meta, 'RETIRO')">
+              - Retiro
+            </button>
+            <button class="btn-action-mini btn-history" [style.width]="!esAdmin ? '100%' : 'auto'" (click)="verHistorial(meta)" title="Ver Historial">
+              📋 {{ !esAdmin ? 'Ver Historial' : '' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado Vacío -->
+      <div *ngIf="metas.length === 0 && !cargando" class="empty-card">
+        <div class="empty-icon">🎯</div>
+        <p class="empty-title">Sin metas activas</p>
+        <p class="empty-subtitle">Crea tu primera meta para iniciar el control de tus ahorros.</p>
+      </div>
+    </div>
+
+    <!-- Panel Gráfico de Distribución -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>Distribución de Ahorros</h3>
+      </div>
+      <div class="chart-wrapper">
+        <canvas
+          baseChart
+          [data]="{ labels: pieChartLabels, datasets: [{ data: pieChartData }] }"
+          [options]="pieChartOptions"
+          [type]="pieChartType"
+        >
+        </canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Crear Meta -->
+<div class="modal-backdrop" *ngIf="mostrarModalMeta && esAdmin" (click)="cerrarModalMeta()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <button class="btn-close" (click)="cerrarModalMeta()">&times;</button>
+    <div class="modal-header">
+      <h2>Crear Meta de Ahorro</h2>
+    </div>
+
+    <form [formGroup]="metaForm" (ngSubmit)="guardarMeta()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="nombre">Nombre de la Meta</label>
+          <input id="nombre" type="text" formControlName="nombre" placeholder="Ej. Fondo de Emergencia" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label for="montoMeta">Monto Meta (Q)</label>
+          <input 
+            id="montoMeta" 
+            type="number" 
+            step="0.01" 
+            min="0.01"
+            formControlName="montoMeta" 
+            placeholder="Ej. 5000.00" 
+            (keydown)="prevenirSignoMenos($event)"
+            class="form-control" 
+          />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="cerrarModalMeta()" [disabled]="cargando">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="metaForm.invalid || cargando">
+          {{ cargando ? 'Guardando...' : 'Crear Meta' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Registrar Movimiento -->
+<div class="modal-backdrop" *ngIf="mostrarModalMovimiento && esAdmin" (click)="cerrarModalMovimiento()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <button class="btn-close" (click)="cerrarModalMovimiento()">&times;</button>
+    <div class="modal-header">
+      <h2>{{ tipoMovimientoActivo === 'APORTE' ? 'Registrar Aporte' : 'Registrar Retiro' }}</h2>
+      <p class="modal-subtitle">{{ metaSeleccionada?.nombre }}</p>
+    </div>
+
+    <!-- Banner de Advertencia Estilizado -->
+    <div *ngIf="mensajeAdvertencia" class="alert-banner warning">
+      <div class="alert-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="alert-content">
+        <span class="alert-title">Atención</span>
+        <p>{{ mensajeAdvertencia }}</p>
+      </div>
+    </div>
+
+    <form [formGroup]="movimientoForm" (ngSubmit)="guardarMovimiento()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="monto">Monto (Q)</label>
+          <input 
+            id="monto" 
+            type="number" 
+            step="0.01" 
+            min="0.01"
+            formControlName="monto" 
+            placeholder="0.00" 
+            (keydown)="prevenirSignoMenos($event)"
+            (input)="mensajeAdvertencia = null"
+            class="form-control" 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="descripcion">Descripción {{ tipoMovimientoActivo === 'RETIRO' ? '(Requerida)' : '(Opcional)' }}</label>
+          <input id="descripcion" type="text" formControlName="descripcion" placeholder="Ej. Depósito semanal" class="form-control" />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="cerrarModalMovimiento()" [disabled]="cargando">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="movimientoForm.invalid || cargando">
+          {{ cargando ? 'Procesando...' : 'Confirmar' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Historial de Movimientos -->
+<div class="modal-backdrop" *ngIf="mostrarModalHistorial" (click)="cerrarModalHistorial()">
+  <div class="modal-card modal-large" (click)="$event.stopPropagation()">
+    <button class="btn-close" (click)="cerrarModalHistorial()">&times;</button>
+    <div class="modal-header">
+      <h2>Historial de Movimientos</h2>
+      <p class="modal-subtitle">{{ metaSeleccionada?.nombre }}</p>
+    </div>
+
+    <div class="modal-body">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Descripción</th>
+              <th class="text-right">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let mov of historialMovimientos">
+              <td>{{ mov.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <span class="badge" [ngClass]="mov.tipo === 'APORTE' ? 'badge-aporte' : 'badge-retiro'">
+                  {{ mov.tipo }}
+                </span>
+              </td>
+              <td>{{ mov.descripcion || 'Sin detalle' }}</td>
+              <td class="monto-column text-right" [ngClass]="mov.tipo === 'APORTE' ? 'text-green' : 'text-red'">
+                {{ mov.tipo === 'APORTE' ? '+' : '-' }} Q {{ mov.monto | number:'1.2-2' }}
+              </td>
+            </tr>
+            <tr *ngIf="historialMovimientos.length === 0 && !cargando">
+              <td colspan="4" class="empty-message">No se registran movimientos en esta meta.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
