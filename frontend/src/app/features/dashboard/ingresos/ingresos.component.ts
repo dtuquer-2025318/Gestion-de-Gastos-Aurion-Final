@@ -1,9 +1,19 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IngresosService } from '../../../core/services/ingresos.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Ingreso, IngresoKPIs, CreateIngresoPayload, UpdateIngresoPayload, CategoriaIngreso, TipoComprobante, EstadoIngreso } from '../../../core/models/ingresos.model';
+import {
+  Ingreso,
+  IngresoKPIs,
+  CreateIngresoPayload,
+  UpdateIngresoPayload,
+  CategoriaIngreso,
+  TipoIngreso,
+  TipoComprobante,
+  EstadoIngreso,
+  DesgloseFiscalDTO
+} from '../../../core/models/ingresos.model';
 
 @Component({
   selector: 'app-ingresos',
@@ -19,8 +29,9 @@ export class IngresosComponent implements OnInit {
   ingresos = signal<Ingreso[]>([]);
   kpis = signal<IngresoKPIs>({
     totalIngresosBrutos: 0,
-    previsionImpuestos: 0,
+    retencionIsr: 0,
     retencionesIgss: 0,
+    ivaPendientePago: 0,
     ingresoNetoReal: 0,
   });
 
@@ -33,20 +44,67 @@ export class IngresosComponent implements OnInit {
   editingId = signal<string | null>(null);
 
   form = signal<CreateIngresoPayload>({
-    clienteOrigen: '',
-    categoria: 'SERVICIOS',
-    montoBruto: 0,
-    fecha: new Date().toISOString().split('T')[0],
-    tipoComprobante: 'FACTURA',
-    estado: 'PAGADO',
-  });
-
+  clienteOrigen: '',
+  descripcion: '',
+  categoria: 'SERVICIOS',
+  tipoIngreso: 'SERVICIOS_PROFESIONALES',
+  montoBruto: 0,
+  fecha: new Date().toISOString().split('T')[0],
+  tipoComprobante: 'FACTURA',
+  estado: 'PAGADO',
+});
   showAnularConfirm = signal(false);
   anularId = signal<string | null>(null);
 
-  categorias: CategoriaIngreso[] = ['SERVICIOS','PLANILLA','PRODUCTOS','CONSULTORIA','HONORARIOS','VENTAS','ALQUILERES','INTERESES','REIMBOLSOS','OTROS'];
+  categorias: CategoriaIngreso[] = ['SERVICIOS', 'PLANILLA', 'PRODUCTOS', 'CONSULTORIA', 'OTROS'];
+  tiposIngreso: TipoIngreso[] = [
+    'SALARIO',
+    'SERVICIOS_PROFESIONALES',
+    'VENTA',
+    'ALQUILER',
+    'INTERES',
+    'REEMBOLSO',
+    'OTRO'
+  ];
   comprobantes: TipoComprobante[] = ['FACTURA', 'SALARIO'];
   estados: EstadoIngreso[] = ['PAGADO', 'PENDIENTE'];
+
+  // Cálculo en tiempo real reactivo derivado del Signal 'form'
+  desgloseModal = computed<DesgloseFiscalDTO>(() => {
+    const f = this.form();
+    const monto = f.montoBruto || 0;
+
+    if (f.estado === 'PENDIENTE') {
+      return { baseImponible: monto, iva: 0, isr: 0, igss: 0, ivaPendientePago: 0, neto: monto, cuentaComoIngreso: true };
+    }
+
+    switch (f.tipoIngreso) {
+      case 'SALARIO': {
+        const igss = Number((monto * 0.0483).toFixed(2));
+        return { baseImponible: monto, iva: 0, isr: 0, igss, ivaPendientePago: 0, neto: Number((monto - igss).toFixed(2)), cuentaComoIngreso: true };
+      }
+      case 'SERVICIOS_PROFESIONALES': {
+        const isr = monto >= 2500 ? Number((monto * 0.05).toFixed(2)) : 0;
+        return { baseImponible: monto, iva: 0, isr, igss: 0, ivaPendientePago: 0, neto: Number((monto - isr).toFixed(2)), cuentaComoIngreso: true };
+      }
+      case 'VENTA': {
+        const base = Number((monto / 1.12).toFixed(2));
+        const iva = Number((monto - base).toFixed(2));
+        return { baseImponible: base, iva, isr: 0, igss: 0, ivaPendientePago: iva, neto: base, cuentaComoIngreso: true };
+      }
+      case 'ALQUILER': {
+        const isr = Number((monto * 0.10).toFixed(2));
+        return { baseImponible: monto, iva: 0, isr, igss: 0, ivaPendientePago: 0, neto: Number((monto - isr).toFixed(2)), cuentaComoIngreso: true };
+      }
+      case 'REEMBOLSO': {
+        return { baseImponible: 0, iva: 0, isr: 0, igss: 0, ivaPendientePago: 0, neto: monto, cuentaComoIngreso: false };
+      }
+      case 'INTERES':
+      case 'OTRO':
+      default:
+        return { baseImponible: monto, iva: 0, isr: 0, igss: 0, ivaPendientePago: 0, neto: monto, cuentaComoIngreso: true };
+    }
+  });
 
   ngOnInit(): void {
     this.isAdmin.set(this.authService.currentUser()?.role === 'ADMIN');
@@ -74,21 +132,24 @@ export class IngresosComponent implements OnInit {
     });
   }
 
-  onCategoriaChange(nuevaCategoria: CategoriaIngreso): void {
-  let tipoComp: TipoComprobante = this.form().tipoComprobante;
+  onTipoIngresoChange(nuevoTipo: TipoIngreso): void {
+    let tipoComp: TipoComprobante = 'FACTURA';
+    let cat: CategoriaIngreso = 'SERVICIOS';
 
-  if (nuevaCategoria === 'PLANILLA') {
-    tipoComp = 'SALARIO';
-  } else if (['SERVICIOS', 'PRODUCTOS', 'CONSULTORIA', 'HONORARIOS', 'VENTAS', 'ALQUILERES'].includes(nuevaCategoria)) {
-    tipoComp = 'FACTURA';
+    if (nuevoTipo === 'SALARIO') {
+      tipoComp = 'SALARIO';
+      cat = 'PLANILLA';
+    } else if (nuevoTipo === 'VENTA') {
+      cat = 'PRODUCTOS';
+    }
+
+    this.form.update((f) => ({
+      ...f,
+      tipoIngreso: nuevoTipo,
+      tipoComprobante: tipoComp,
+      categoria: cat,
+    }));
   }
-
-  this.form.update(f => ({
-    ...f,
-    categoria: nuevaCategoria,
-    tipoComprobante: tipoComp
-  }));
-}
 
   openCreate(): void {
     if (!this.isAdmin()) return;
@@ -97,6 +158,7 @@ export class IngresosComponent implements OnInit {
     this.form.set({
       clienteOrigen: '',
       categoria: 'SERVICIOS',
+      tipoIngreso: 'SERVICIOS_PROFESIONALES',
       montoBruto: 0,
       fecha: new Date().toISOString().split('T')[0],
       tipoComprobante: 'FACTURA',
@@ -112,6 +174,7 @@ export class IngresosComponent implements OnInit {
     this.form.set({
       clienteOrigen: ing.clienteOrigen,
       categoria: ing.categoria,
+      tipoIngreso: ing.tipoIngreso,
       montoBruto: ing.montoBruto,
       fecha: ing.fecha.split('T')[0],
       tipoComprobante: ing.tipoComprobante,
@@ -189,28 +252,5 @@ export class IngresosComponent implements OnInit {
       default:
         return '';
     }
-  }
-
-  get deduccionEstimadaModal(): number {
-    const monto = this.form().montoBruto || 0;
-    const tipo = this.form().tipoComprobante;
-
-    if (tipo === 'SALARIO') {
-      return Number((monto * 0.0483).toFixed(2));
-    } else if (tipo === 'FACTURA') {
-      return Number((monto * 0.15).toFixed(2));
-    }
-    return 0;
-  }
-
-  get labelDeduccionModal(): string {
-    return this.form().tipoComprobante === 'SALARIO'
-      ? 'Deducción IGSS Estimada (4.83%):'
-      : 'Deducción Fiscal Estimada (IVA/ISR):';
-  }
-
-  get netoEstimadoModal(): number {
-    const monto = this.form().montoBruto || 0;
-    return Number((monto - this.deduccionEstimadaModal).toFixed(2));
   }
 }
