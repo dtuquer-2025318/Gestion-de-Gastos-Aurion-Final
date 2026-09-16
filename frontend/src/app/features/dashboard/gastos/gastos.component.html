@@ -1,0 +1,181 @@
+<div class="gastos-container">
+  <!-- Banner de Alerta de Error -->
+  <div class="alert-danger-banner" *ngIf="mensajeError">
+    <div class="alert-content">
+      <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ mensajeError }}</span>
+    </div>
+    <button class="btn-close-alert" (click)="mensajeError = null">&times;</button>
+  </div>
+
+  <!-- Encabezado de la Sección -->
+  <div class="header-actions">
+    <div>
+      <h2>Gestión de Gastos Personales</h2>
+      <p class="subtitle">Controla tus consumos divididos por categorías y visualiza tu presupuesto.</p>
+    </div>
+  </div>
+
+  <!-- Dashboard Grid (Tarjetas + Gráfica) -->
+  <div class="dashboard-grid">
+    <div class="cards-grid">
+      <div class="category-card" *ngFor="let cat of categorias">
+        <div class="card-header">
+          <span class="category-title">{{ cat }}</span>
+          <button class="btn-add-mini" (click)="abrirModalCrear(cat)" title="Agregar gasto en {{cat}}">+</button>
+        </div>
+        <div class="card-body">
+          <span class="monto-label">Total gastado</span>
+          <h3 class="monto-val">Q {{ obtenerTotalPorCategoria(cat) | number:'1.2-2' }}</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <h3>Distribución Porcentual</h3>
+      </div>
+      <div class="chart-wrapper">
+        <canvas
+          baseChart
+          [data]="{ labels: pieChartLabels, datasets: [{ data: pieChartData }] }"
+          [options]="pieChartOptions"
+          [type]="pieChartType"
+        >
+        </canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de Historial -->
+  <div class="table-card">
+    <div class="table-header">
+      <h3>Historial de Registros</h3>
+    </div>
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Detalle del Gasto</th>
+            <th>Categoría</th>
+            <th>Monto</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let gasto of gastos">
+            <td>{{ gasto.fecha | date:'dd/MM/yyyy' }}</td>
+            <td class="font-medium">{{ gasto.proveedorBeneficiario }}</td>
+            <td>
+              <span class="badge badge-categoria">{{ gasto.categoria }}</span>
+            </td>
+            <td class="monto-column">Q {{ gasto.montoTotal | number:'1.2-2' }}</td>
+            <td class="actions-cell">
+              <button class="btn-action btn-edit" (click)="abrirModalEditar(gasto)" title="Editar">
+                ✏️
+              </button>
+              <button class="btn-action btn-delete" (click)="confirmarEliminar(gasto)" title="Eliminar">
+                🗑️
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="gastos.length === 0 && !cargando">
+            <td colspan="5" class="empty-message">
+              No hay gastos registrados actualmente.
+            </td>
+          </tr>
+          <tr *ngIf="cargando">
+            <td colspan="5" class="empty-message">
+              Cargando registros...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Crear / Editar Gasto -->
+<div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <button class="btn-close" (click)="cerrarModal()">&times;</button>
+    <div class="modal-header">
+      <h2>{{ gastoEnEdicionId !== null ? 'Editar Gasto' : 'Registrar Gasto (' + categoriaActiva + ')' }}</h2>
+    </div>
+
+    <form [formGroup]="gastoForm" (ngSubmit)="guardarGasto()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="fecha">Fecha</label>
+          <input id="fecha" type="date" formControlName="fecha" class="form-control" />
+        </div>
+
+        <div class="form-group">
+          <label for="proveedorBeneficiario">¿En qué gastaste?</label>
+          <input 
+            id="proveedorBeneficiario" 
+            type="text" 
+            formControlName="proveedorBeneficiario" 
+            [placeholder]="placeholdersDetalle[categoriaActiva]" 
+            class="form-control" 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="montoTotal">Monto (Q)</label>
+          <input id="montoTotal" type="number" step="0.01" formControlName="montoTotal" class="form-control" />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" (click)="cerrarModal()" [disabled]="cargando">Cancelar</button>
+        <button type="submit" class="btn-primary" [disabled]="gastoForm.invalid || cargando">
+          {{ cargando ? 'Guardando...' : (gastoEnEdicionId !== null ? 'Actualizar' : 'Guardar') }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal de Confirmación para Eliminar Registro -->
+<div class="modal-backdrop" *ngIf="mostrarModalEliminar" (click)="cerrarModalEliminar()">
+  <div class="modal-card modal-danger" (click)="$event.stopPropagation()">
+    <button class="btn-close" (click)="cerrarModalEliminar()">&times;</button>
+    
+    <div class="modal-header-centered">
+      <div class="warning-icon-wrapper">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <h3>Confirmar Eliminación</h3>
+    </div>
+
+    <div class="modal-body text-center">
+      <p class="modal-description">
+        ¿Estás seguro de que deseas eliminar el registro <strong>"{{ gastoParaEliminar?.proveedorBeneficiario }}"</strong> por valor de 
+        <span class="monto-highlight">Q {{ gastoParaEliminar?.montoTotal | number:'1.2-2' }}</span>?
+      </p>
+      <div class="alert-subtext">
+        <span>⚠️ Esta acción es permanente y no se puede deshacer.</span>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" (click)="cerrarModalEliminar()" [disabled]="cargando">
+        Cancelar
+      </button>
+      <button type="button" class="btn-confirm-delete" (click)="ejecutarEliminacion()" [disabled]="cargando">
+        <span *ngIf="!cargando">Sí, Eliminar</span>
+        <span *ngIf="cargando">Eliminando...</span>
+      </button>
+    </div>
+  </div>
+</div>
