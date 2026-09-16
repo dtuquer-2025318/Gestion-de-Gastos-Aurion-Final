@@ -5,8 +5,8 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Generar contraseñas encriptadas para los usuarios iniciales
-  const hashedAdminPassword = await bcrypt.hash('Admin#2026Secure', 12);
-  const hashedUserPassword = await bcrypt.hash('User#2026Secure', 12);
+  const hashedAdminPassword = await bcrypt.hash('Admin@123', 12);
+  const hashedUserPassword = await bcrypt.hash('User@123', 12);
 
   // 1. Crear Usuario Administrador
   const admin = await prisma.user.upsert({
