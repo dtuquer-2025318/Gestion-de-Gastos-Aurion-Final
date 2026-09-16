@@ -42,10 +42,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   navItems = [
     { path: '/dashboard', label: 'INICIO', icon: 'bi-house-door-fill', exact: true },
-    { path: null, label: 'Tarjetas De Crédito', icon: 'bi-credit-card-fill', exact: false },
     { path: '/dashboard/usuarios', label: 'Usuarios', icon: 'bi-people-fill', exact: false },
-    { path: null, label: 'Ahorro para Emergencia', icon: 'bi-piggy-bank-fill', exact: false },
-    { path: null, label: 'Gastos', icon: 'bi-receipt', exact: false },
+    { path: '/dashboard/ahorro-emergencia', label: 'Ahorro para Emergencia', icon: 'bi-piggy-bank-fill', exact: false },
+    { path: '/dashboard/gastos', label: 'Gastos', icon: 'bi-people-fill', exact: false },
     { path: '/dashboard/ingresos', label: 'Ingresos', icon: 'bi-graph-up-arrow', exact: false },
 ];
 
