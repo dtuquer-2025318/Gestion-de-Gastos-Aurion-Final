@@ -29,9 +29,19 @@ export const routes: Routes = [
           import('./features/dashboard/ingresos/ingresos.component').then((m) => m.IngresosComponent),
       },
       {
-        path: 'usuarios', // <-- AGREGAR ESTA RUTA
+        path: 'usuarios',
         loadComponent: () =>
           import('./features/dashboard/users/users.component').then((m) => m.UsersComponent),
+      },
+      {
+        path: 'gastos',
+        loadComponent: () =>
+          import('./features/dashboard/gastos/gastos.component').then((m) => m.GastosComponent),
+      },
+      {
+        path: 'ahorro-emergencia',
+        loadComponent: () =>
+          import('./features/dashboard/ahorro/ahorro.component').then((m) => m.AhorroComponent),
       },
     ],
   },
